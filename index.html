@@ -1,0 +1,209 @@
+<html>
+    <head>
+        <style>
+            #app {
+                width: 700px;
+                margin: 0 auto;
+            }
+
+            .single-note-area {
+                width: 100%;
+                position: relative;
+            }
+
+            .single-note-area:before {
+                content: "• ";
+                position: absolute;
+                left: -16px;
+                top: 3px;
+            }
+
+            .text-field {
+                width: 100%;
+                display: block;
+                font-size: 18px;
+                font-family:"Times New Roman", Times, serif;  
+                white-space: pre-wrap;
+                display: block;
+                min-height: 21px;
+            }
+
+            textarea {
+                width: 100%;
+                border: 0;
+                outline: 0;
+                font-size: 18px;
+                font-family:"Times New Roman", Times, serif;  
+                padding: 0;
+                resize: none;
+                height: auto;
+                /* white-space: pre-wrap; */
+                /* min-height: 21px; */
+            }
+
+        </style>
+    </head>
+    <body>
+        <h4>Editor</h4>
+        <div id="app"></div>
+
+        <script src="./assets/js/jquery.js"></script>
+        <script src="./assets/js/auto-resize.js"></script>
+        <script>
+            function TextPointer(obj) {
+                this._id = obj._id
+                this.text = obj.text
+            }
+    
+            var notes = []
+    
+            function randomStr(len, arr) { 
+                var ans = ''; 
+                for (var i = len; i > 0; i--) { 
+                    ans +=  
+                      arr[Math.floor(Math.random() * arr.length)]; 
+                } 
+                return ans; 
+            } 
+
+            function getSelectedText(id) {
+                if(notes.length) {
+                    for(var i = 0; i < notes.length; i++) {
+                        if(notes[i]._id == id) {
+                            return notes[i]
+                        }
+                    }
+                }
+            }
+
+            function updateEditedText(id, value) {
+                if(notes.length) {
+                    for(var i = 0; i < notes.length; i++) {
+                        if(notes[i]._id == id) {
+                            notes[i].text = value
+                        }
+                    }
+                }
+            }
+
+            function deleteNotes(id) {
+                if(notes.length) {
+                    for(var i = 0; i < notes.length; i++) {
+                        if(notes[i]._id == id) {
+                            notes.splice(i, 1);
+                            $('#parent_'+id).remove()
+                            break;
+                        }
+                    }
+                }
+            }
+
+            function updateShowTextLayer(id, value) {
+
+                $('#'+id).text(value)
+                $('#text_'+id).remove()
+                $('#'+id).css({
+                    'display': 'block'
+                })
+            }
+
+            function textAreaOnEnter(text_id ,id) {
+                var isEmpty = false
+                $("textarea").keyup(function(e) {
+                    if(e.keyCode == 13) {
+                        if (!e.shiftKey) {
+                            addNewNeighbour('app')
+                        }
+                    } else if(e.keyCode == 46 || e.keyCode == 8) {
+                        if(notes.length > 1) {
+                            if(isEmpty) {
+                                deleteNotes(id)
+                                isEmpty = false
+                            } else {
+                                if(e.target.value.length == 0) {
+                                    isEmpty = true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function showText(point) {
+                return `
+                    <div class="single-note-area" id="parent_`+point._id+`">
+                        <span id="`+point._id+`" class="text-field">`+point.text+`</span>
+                    </div>
+                `
+            }
+
+            function addTextAreaToTheDiv(point) {
+                var gettingParentElement = $('#parent_'+point._id)
+                var gettingTextElement = $('#'+point._id)
+                gettingTextElement.css({
+                    'display': 'none',
+                })
+
+                var textAreaValue = ''
+                if(point.text.length) {
+                    textAreaValue = point.text
+                }
+
+                var AddingTextArea = `
+                    <textarea id="text_`+point._id+`" rows="1" data-id="`+point._id+`" class="text-area editingText"></textarea>
+                `
+                gettingParentElement.append(AddingTextArea)
+                $('#text_'+point._id).html(textAreaValue)
+
+                var data = $('#text_'+point._id).html().trim();
+                $('#text_'+point._id).focus().val('').val(data)
+
+                textAreaOnEnter('#text_'+point._id, point._id)
+                autosize($('textarea'));
+            }
+
+            function addNewNeighbour() {
+                var point = new TextPointer({})
+                point._id = randomStr(7, '123456789abcdefghijklmnopqrstuvwxyz-')
+                notes.push(point)
+                
+                var App = $('#app')
+                point.text = ''
+                App.append(showText(point))
+
+                addTextAreaToTheDiv(point)
+            }
+    
+            function drawArea(id, point) {
+                var App = $('#'+id)
+                point.text = 'Click here to start writing'
+                App.append(showText(point))
+            }
+
+            function checkAndAddInitialNote(id) {
+                var point = new TextPointer({})
+                point._id = randomStr(7, '123456789abcdefghijklmnopqrstuvwxyz-')
+                notes.push(point)
+                drawArea(id, point)   
+            }
+            
+            function init() {
+                checkAndAddInitialNote('app')
+            }
+
+            $('#app').on('click', '.text-field', function(e) {
+                var data = getSelectedText(e.target.id)
+                addTextAreaToTheDiv(data)
+            })            
+            
+            $('#app').on('blur', '.editingText', function(e) {
+                var id = e.target.id
+                var value = e.target.value
+                updateEditedText($('#'+id).attr('data-id'), value)
+                updateShowTextLayer($('#'+id).attr('data-id'), value)
+            });
+            
+            init()
+        </script>
+    </body>
+</html>
